@@ -121,6 +121,9 @@ files:
         }
     }
   learner_created: false
-feedback_link: https://hyperskill.org/projects/87/stages/481/implement#comment
-status: Unchecked
-record: -1
+feedback_link: https://hyperskill.org/learn/step/7787#comment
+status: Solved
+feedback:
+  message: Congratulations!
+  time: Sat, 06 Aug 2022 09:36:23 UTC
+record: 2
