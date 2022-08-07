@@ -9,18 +9,18 @@ fun printChoices() {
         2. Multiply matrix by a constant
         3. Multiply matrices
         4. Transpose matrix
+        5. Calculate a determinant
+        6. Inverse matrix
         0. Exit
     """.trimIndent())
 }
 
 fun printTransposeChoices() {
     println("""
-        1. Add matrices
-        2. Multiply matrix by a constant
-        3. Multiply matrices
-        4. Transpose matrix
-        5. Calculate a determinant
-        0. Exit
+        1. Main diagonal
+        2. Side diagonal
+        3. Vertical line
+        4. Horizontal line
     """.trimIndent())
 }
 
@@ -35,7 +35,25 @@ fun handleChoices(choice: Int) {
             handleTranspose()
         }
         5 -> calculateDeterminant()
+        6 -> inverseMatrix()
     }
+}
+
+private fun inverseMatrix() {
+    print("Enter matrix size: ")
+    val (rows, cols) = readln().split(" ").map { it.toInt() }
+    println("Enter matrix:")
+    val matrix = Matrix(rows, cols)
+    matrix.fillMatrix()
+
+    println("The result is:")
+
+    if (matrix.determinant() == 0.0) {
+        println("This matrix doesn't have an inverse.")
+        return
+    }
+
+    Matrix.printMatrix(matrix.inverse(), rows, cols)
 }
 
 fun calculateDeterminant() {
@@ -158,7 +176,7 @@ class Matrix(private var row: Int, private var col: Int) {
 
             return minors.mapIndexed { index, it -> inMatrix.matrix[0][index] * it.determinant() * (-1.0).pow(index) }.sum()
         }
-
+        
         private fun getMinorAtIndex(inMatrix: Matrix, row: Int, column: Int): Matrix {
             inMatrix.matrix.removeAt(row)
             inMatrix.matrix.forEach { it.removeAt(column) }
@@ -286,5 +304,17 @@ class Matrix(private var row: Int, private var col: Int) {
 
         return transposedMatrix
     }
-    
+
+    fun inverse(): MutableList<MutableList<Double>> {
+        val adjoint = Matrix(row, col)
+
+        for (i in 0 until row) {
+            for (j in 0 until col) {
+                adjoint.matrix[i][j] = getMinorAtIndex(copy(this), i, j).determinant() * (-1.0).pow(i + j)
+            }
+        }
+        adjoint.matrix = adjoint.mainTranspose()
+        return adjoint.multiplyByConstant(1 / determinant())
+    }
+
 }
