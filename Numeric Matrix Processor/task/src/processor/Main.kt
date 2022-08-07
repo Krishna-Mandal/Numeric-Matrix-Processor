@@ -1,5 +1,6 @@
 package processor
 
+import kotlin.math.pow
 import kotlin.system.exitProcess
 
 fun printChoices() {
@@ -14,10 +15,12 @@ fun printChoices() {
 
 fun printTransposeChoices() {
     println("""
-        1. Main diagonal
-        2. Side diagonal
-        3. Vertical line
-        4. Horizontal line
+        1. Add matrices
+        2. Multiply matrix by a constant
+        3. Multiply matrices
+        4. Transpose matrix
+        5. Calculate a determinant
+        0. Exit
     """.trimIndent())
 }
 
@@ -31,7 +34,19 @@ fun handleChoices(choice: Int) {
             printTransposeChoices()
             handleTranspose()
         }
+        5 -> calculateDeterminant()
     }
+}
+
+fun calculateDeterminant() {
+    println("Enter matrix size:")
+    val (row, col) = readln().split(" ").map { it.toInt() }
+    val matrix = Matrix(row = row, col = col)
+    println("Enter matrix:")
+    matrix.fillMatrix()
+    
+    println("The result is:")
+    println(matrix.determinant())
 }
 
 fun handleTranspose() {
@@ -47,7 +62,7 @@ fun handleTranspose() {
         3 -> matrix.verticalTranspose()
         4 -> matrix.horizontalTranspose()
         else -> {
-            emptyArray()
+            matrix.matrix
         }
     }
     Matrix.printMatrix(inMatrix = transposedMatrix, inRow = row, inCol = col)
@@ -109,12 +124,12 @@ fun main() {
 
 }
 
-class Matrix(private val row: Int, private val col: Int) {
+class Matrix(private var row: Int, private var col: Int) {
 
-    var matrix : Array<Array<Double>> = emptyArray()
+    var matrix : MutableList<MutableList<Double>> = MutableList(row) { MutableList(col) {0.0} }
 
     companion object {
-        fun printMatrix(inMatrix : Array<Array<Double>>, inRow : Int, inCol : Int) {
+        fun printMatrix(inMatrix : MutableList<MutableList<Double>>, inRow : Int, inCol : Int) {
             if (inMatrix.isNotEmpty()) {
                 for (row in 0 until inRow) {
                     for (col in 0 until inCol) {
@@ -128,6 +143,47 @@ class Matrix(private val row: Int, private val col: Int) {
             }
         }
 
+        private fun determinant(inMatrix: Matrix): Double {
+            if (inMatrix.row == 2 && inMatrix.col == 2) {
+                return inMatrix.matrix[0][0] * inMatrix.matrix[1][1] - inMatrix.matrix[0][1] * inMatrix.matrix[1][0]
+            } else if (inMatrix.row == 1 && inMatrix.col == 1) {
+                return inMatrix.matrix[0][0]
+            }
+
+            val minors = mutableListOf<Matrix>()
+
+            for (i in 0 until inMatrix.col) {
+                minors.add(getMinorAtIndex(copy(inMatrix), 0, i))
+            }
+
+            return minors.mapIndexed { index, it -> inMatrix.matrix[0][index] * it.determinant() * (-1.0).pow(index) }.sum()
+        }
+
+        private fun getMinorAtIndex(inMatrix: Matrix, row: Int, column: Int): Matrix {
+            inMatrix.matrix.removeAt(row)
+            inMatrix.matrix.forEach { it.removeAt(column) }
+            inMatrix.row -= 1
+            inMatrix.col -= 1
+
+            return inMatrix
+        }
+
+        private fun copy(matrix: Matrix): Matrix {
+            val newMatrix = Matrix(matrix.row, matrix.col)
+
+            for (i in 0 until matrix.row) {
+                for (j in 0 until matrix.col) {
+                    newMatrix.matrix[i][j] = matrix.matrix[i][j]
+                }
+            }
+
+            return newMatrix
+        }
+
+    }
+
+    fun determinant(): Double {
+        return Companion.determinant(this)
     }
 
     fun printMatrix() {
@@ -135,13 +191,13 @@ class Matrix(private val row: Int, private val col: Int) {
     }
 
     fun fillMatrix() {
-        matrix = Array(row) {
-            readln().split(" ").map { it.toDouble() }.toTypedArray()
+        matrix = MutableList(row) {
+            readln().split(" ").map { it.toDouble() }.toMutableList()
         }
     }
 
-    fun addMatrix(inMatrix : Array<Array<Double>>, inRow : Int, inCol : Int): Array<Array<Double>> {
-        val newMatrix : Array<Array<Double>> = Array(inRow) { Array(inCol) {0.0} }
+    fun addMatrix(inMatrix : MutableList<MutableList<Double>>, inRow : Int, inCol : Int): MutableList<MutableList<Double>> {
+        val newMatrix : MutableList<MutableList<Double>> = MutableList(inRow) { MutableList(inCol) {0.0} }
         if (row != inRow && col != inCol) {
             println("ERROR")
             exitProcess(0)
@@ -156,8 +212,8 @@ class Matrix(private val row: Int, private val col: Int) {
         return newMatrix
     }
 
-    fun multiplyByConstant(mul: Double): Array<Array<Double>> {
-        val newMatrix : Array<Array<Double>> = Array(row) { Array(col) {0.0} }
+    fun multiplyByConstant(mul: Double): MutableList<MutableList<Double>> {
+        val newMatrix : MutableList<MutableList<Double>> = MutableList(row) { MutableList(col) {0.0} }
         for (row1 in 0 until row) {
             for (col1 in 0 until col) {
                 newMatrix[row1][col1] = matrix[row1][col1] * mul
@@ -167,8 +223,8 @@ class Matrix(private val row: Int, private val col: Int) {
         return newMatrix
     }
 
-    fun multiplyMatrix(inMatrix: Array<Array<Double>>, inRow: Int, inCol: Int): Array<Array<Double>> {
-        val newMatrix : Array<Array<Double>> = Array(row) { Array(inCol) { 0.0 } }
+    fun multiplyMatrix(inMatrix: MutableList<MutableList<Double>>, inRow: Int, inCol: Int): MutableList<MutableList<Double>> {
+        val newMatrix : MutableList<MutableList<Double>> = MutableList(row) { MutableList(inCol) { 0.0 } }
         if (this.col != inRow) {
             println("The operation cannot be performed.")
         } else {
@@ -183,8 +239,8 @@ class Matrix(private val row: Int, private val col: Int) {
         return newMatrix
     }
 
-    fun mainTranspose() : Array<Array<Double>> {
-        val transposedMatrix = Array(col) { Array(row) { 0.0 } }
+    fun mainTranspose() : MutableList<MutableList<Double>> {
+        val transposedMatrix = MutableList(col) { MutableList(row) { 0.0 } }
 
         for (i in transposedMatrix.indices) {
             for (j in transposedMatrix[i].indices) {
@@ -195,8 +251,8 @@ class Matrix(private val row: Int, private val col: Int) {
         return transposedMatrix
     }
 
-    fun sideTranspose(): Array<Array<Double>> {
-        val transposedMatrix = Array(col) { Array(row) { 0.0 } }
+    fun sideTranspose(): MutableList<MutableList<Double>> {
+        val transposedMatrix = MutableList(col) { MutableList(row) { 0.0 } }
 
         for (i in transposedMatrix.indices) {
             for (j in transposedMatrix[i].indices) {
@@ -207,8 +263,8 @@ class Matrix(private val row: Int, private val col: Int) {
         return transposedMatrix
     }
 
-    fun verticalTranspose(): Array<Array<Double>> {
-        val transposedMatrix = Array(row) { Array(col) { 0.0 } }
+    fun verticalTranspose(): MutableList<MutableList<Double>> {
+        val transposedMatrix = MutableList(row) { MutableList(col) { 0.0 } }
 
         for (i in transposedMatrix.indices) {
             for (j in transposedMatrix[i].indices) {
@@ -219,8 +275,8 @@ class Matrix(private val row: Int, private val col: Int) {
         return transposedMatrix
     }
 
-    fun horizontalTranspose(): Array<Array<Double>> {
-        val transposedMatrix = Array(row) { Array(col) { 0.0 } }
+    fun horizontalTranspose(): MutableList<MutableList<Double>> {
+        val transposedMatrix = MutableList(row) { MutableList(col) { 0.0 } }
 
         for (i in transposedMatrix.indices) {
             for (j in transposedMatrix[i].indices) {
@@ -230,4 +286,5 @@ class Matrix(private val row: Int, private val col: Int) {
 
         return transposedMatrix
     }
+    
 }
